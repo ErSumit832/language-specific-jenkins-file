@@ -49,7 +49,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying NodeJS application...'
-                // Your deployment logic
+                sh "docker-compose -d  "
             }
         }
     }
