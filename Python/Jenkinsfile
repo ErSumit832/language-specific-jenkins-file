@@ -1,0 +1,64 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE = "your-dockerhub-username/python-app"
+        DOCKER_CREDENTIALS_ID = "dockerhub-creds"
+        EMAIL_RECIPIENTS = "team@example.com"
+    }
+
+    stages {
+        stage('Clone') {
+            steps {
+                git 'https://your-repo-url/python-app.git'
+            }
+        }
+
+        stage('Trivy Scan') {
+            steps {
+                sh 'trivy fs . || true'
+            }
+        }
+
+        stage('OWASP Check') {
+            steps {
+                sh 'safety check || true'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'pip install -r requirements.txt'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'pytest'
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    docker.build("${DOCKER_IMAGE}").push("latest")
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying Python application...'
+                // Your deployment logic
+            }
+        }
+    }
+
+    post {
+        always {
+            mail to: "${EMAIL_RECIPIENTS}",
+                 subject: "Python Pipeline - ${currentBuild.currentResult}",
+                 body: "Build result: ${currentBuild.currentResult}"
+        }
+    }
+}
