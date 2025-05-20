@@ -1,0 +1,64 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE = "your-dockerhub-username/go-app"
+        DOCKER_CREDENTIALS_ID = "dockerhub-creds"
+        EMAIL_RECIPIENTS = "team@example.com"
+    }
+
+    stages {
+        stage('Clone') {
+            steps {
+                git 'https://your-repo-url/go-app.git'
+            }
+        }
+
+        stage('Trivy Scan') {
+            steps {
+                sh 'trivy fs . || true'
+            }
+        }
+
+        stage('OWASP Check') {
+            steps {
+                echo 'OWASP Dependency Check not typical for Go, skipping.'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'go build -o app'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'go test ./...'
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                script {
+                    docker.build("${DOCKER_IMAGE}").push("latest")
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying Go application...'
+                // Your deployment logic
+            }
+        }
+    }
+
+    post {
+        always {
+            mail to: "${EMAIL_RECIPIENTS}",
+                 subject: "Go Pipeline - ${currentBuild.currentResult}",
+                 body: "Build result: ${currentBuild.currentResult}"
+        }
+    }
+}
